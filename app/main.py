@@ -9,7 +9,6 @@ import uvicorn
 
 app = FastAPI(title="Auth/SSO Service")
 
-# Security config
 SECRET_KEY = "your-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -17,11 +16,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Prometheus metrics
 login_counter = Counter("login_attempts_total", "Total login attempts")
 success_counter = Counter("login_success_total", "Successful logins")
 
-# Fake DB
 fake_users = {
     "admin": {"username": "admin", "password": pwd_context.hash("admin123")}
 }
@@ -32,13 +29,13 @@ def create_token(data: dict):
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
 @app.post("/token")
-def login(form: OAuth2PasswordRequestForm = Depends()):
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
     login_counter.inc()
-    user = fake_users.get(form.username)
-    if not user or not pwd_context.verify(form.password, user["password"]):
+    user = fake_users.get(form_data.username)
+    if not user or not pwd_context.verify(form_data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     success_counter.inc()
-    token = create_token({"sub": form.username})
+    token = create_token({"sub": form_data.username})
     return {"access_token": token, "token_type": "bearer"}
 
 @app.get("/health")
