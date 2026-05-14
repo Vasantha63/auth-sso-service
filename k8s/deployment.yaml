@@ -5,7 +5,7 @@ metadata:
   labels:
     app: auth-sso-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: auth-sso-service
@@ -16,15 +16,12 @@ spec:
     spec:
       containers:
       - name: auth-sso-service
-        image: auth-sso-service:latest
+        image: 654654435115.dkr.ecr.ap-south-1.amazonaws.com/auth-sso-service:latest
         ports:
         - containerPort: 8000
         env:
         - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: auth-sso-secret
-              key: secret-key
+          value: "your-secret-key-change-in-production"
         resources:
           requests:
             memory: "64Mi"

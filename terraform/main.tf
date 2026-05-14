@@ -2,34 +2,39 @@ provider "aws" {
   region = var.aws_region
 }
 
-# VPC
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-  tags = {
-    Name = "auth-sso-vpc"
-  }
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  tags = { Name = "auth-sso-vpc" }
 }
 
-# Subnet
 resource "aws_subnet" "main" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "${var.aws_region}a"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "${var.aws_region}a"
   map_public_ip_on_launch = true
-  tags = {
-    Name = "auth-sso-subnet"
-  }
+  tags = { Name = "auth-sso-subnet" }
 }
 
-# Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-  tags = {
-    Name = "auth-sso-igw"
-  }
+  tags = { Name = "auth-sso-igw" }
 }
 
-# Security Group
+resource "aws_route_table" "main" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = { Name = "auth-sso-rt" }
+}
+
+resource "aws_route_table_association" "main" {
+  subnet_id      = aws_subnet.main.id
+  route_table_id = aws_route_table.main.id
+}
+
 resource "aws_security_group" "main" {
   vpc_id = aws_vpc.main.id
   ingress {
@@ -50,18 +55,13 @@ resource "aws_security_group" "main" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = {
-    Name = "auth-sso-sg"
-  }
+  tags = { Name = "auth-sso-sg" }
 }
 
-# EC2 Instance (Free Tier)
 resource "aws_instance" "main" {
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.main.id
+  ami                    = "ami-0f58b397bc5c1f2e8"
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.main.id]
-  tags = {
-    Name = "auth-sso-server"
-  }
+  tags = { Name = "auth-sso-server" }
 }
