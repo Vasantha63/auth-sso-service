@@ -63,5 +63,22 @@ resource "aws_instance" "main" {
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.main.id]
+  iam_instance_profile   = "ec2-ecr-role"
+  user_data = <<-EOF
+    #!/bin/bash
+    apt-get update -y
+    curl -sfL https://get.k3s.io | sh -
+    sleep 60
+    PASSWORD=$(aws ecr get-login-password --region ap-south-1)
+    sudo kubectl create secret docker-registry ecr-secret \
+      --docker-server=654654435115.dkr.ecr.ap-south-1.amazonaws.com \
+      --docker-username=AWS \
+      --docker-password=$PASSWORD
+    sudo kubectl create deployment auth-sso-service \
+      --image=654654435115.dkr.ecr.ap-south-1.amazonaws.com/auth-sso-service:latest \
+      --port=8000
+    sudo kubectl patch deployment auth-sso-service \
+      -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"ecr-secret"}]}}}}'
+  EOF
   tags = { Name = "auth-sso-server" }
 }
